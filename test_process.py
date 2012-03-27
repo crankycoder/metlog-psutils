@@ -20,6 +20,9 @@ import socket
 import threading
 from nose.tools import eq_
 
+from mock import Mock
+from metlog.client import MetlogClient
+
 class TestProcessLogs(TestCase):
 
     def test_connections(self):
@@ -95,4 +98,54 @@ class TestProcessLogs(TestCase):
     def test_invalid_metlog_arg(self):
         with self.assertRaises(SyntaxError):
             metlog_procinfo(None, 0, {'thread_io': True})
+
+class TestMetlog(object):
+    logger = 'tests'
+
+    def setUp(self):
+        self.mock_sender = Mock()
+        self.client = MetlogClient(self.mock_sender, self.logger)
+        # overwrite the class-wide threadlocal w/ an instance one
+        # so values won't persist btn tests
+        self.client.timer._local = threading.local()
+        self.client.add_method('procinfo', metlog_procinfo)
+
+    def test_add_procinfo(self):
+        HOST = 'localhost'                 # Symbolic name meaning the local host
+        PORT = 50007              # Arbitrary non-privileged port
+        def echo_serv():
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+            s.bind((HOST, PORT))
+            s.listen(1)
+
+            conn, addr = s.accept()
+            data = conn.recv(1024)
+            conn.send(data)
+            conn.close()
+            s.close()
+
+        t = threading.Thread(target=echo_serv)
+        t.start()
+        time.sleep(1)
+
+        def client_code():
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect((HOST, PORT))
+            client.send('Hello, world')
+            data = client.recv(1024)
+            client.close()
+            time.sleep(1)
+
+        self.client.procinfo(net=True)
+        eq_(1, len(self.client.sender.method_calls))
+        fields = self.client.sender.method_calls[0][1][0]['fields']
+        assert fields == {u'net': [{u'status': u'LISTEN', u'type': u'TCP', u'local': u'127.0.0.1:50007', u'remote': u'*:*'}]}
+
+        # Start the client up just so that the server will die gracefully
+        tc = threading.Thread(target=client_code)
+        tc.start()
+
+
 

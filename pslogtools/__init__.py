@@ -168,7 +168,7 @@ def process_details(pid=None, net=False, io=False,
     stdout, stderr = result[0], result[1]
     return json.loads(stdout)
 
-def metlog_procinfo(self, pid, config):
+def metlog_procinfo(self, pid=None, **config):
     '''
     This is a metlog extension method to place process data into the metlog
     fields dictionary
