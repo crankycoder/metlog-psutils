@@ -160,7 +160,7 @@ def process_details(pid=None, net=False, io=False,
     if pid is None:
         pid = os.getpid()
     interp = sys.executable
-    cmd = ['from metlog_plugins.psutil_plugin import LazyPSUtil',
+    cmd = ['from metlog_psutils.psutil_plugin import LazyPSUtil',
            'LazyPSUtil(%(pid)d).write_json(net=%(net)s, io=%(io)s, cpu=%(cpu)s, mem=%(mem)s, threads=%(threads)s)']
     cmd = ';'.join(cmd)
     rdict = {'pid': pid,
@@ -175,22 +175,43 @@ def process_details(pid=None, net=False, io=False,
     stdout, stderr = result[0], result[1]
     return json.loads(stdout)
 
-def metlog_procinfo(self, pid=None, **config):
-    '''
-    This is a metlog extension method to place process data into the metlog
-    fields dictionary
-    '''
-    if pid is None:
-        pid = os.getpid()
+def config_plugin(**config):
+    """
+    Configure the metlog plugin prior to binding it to the
+    metlog client.
+    """
+    config_net = config.pop('net', False)
+    config_io = config.pop('io', False)
+    config_cpu = config.pop('cpu', False)
+    config_mem = config.pop('mem', False)
+    config_threads = config.pop('threads', False)
 
-    net = config.pop('net', False)
-    io = config.pop('io', False)
-    cpu = config.pop('cpu', False)
-    mem = config.pop('mem', False)
-    threads = config.pop('threads', False)
     if config:
         raise SyntaxError('Invalid arguments: %s' % str(config))
 
-    fields = process_details(pid, net, io, cpu, mem, threads)
-    self.metlog('procinfo', fields=fields)
+    def metlog_procinfo(self, pid=None, net=False, io=False,
+            cpu=False, mem=False, threads=False):
+        '''
+        This is a metlog extension method to place process data into the metlog
+        fields dictionary
+        '''
+        if not ((net and config_net) or
+                (io and config_io) or
+                (cpu and config_cpu) or
+                (mem and config_mem) or
+                (threads and config_threads)):
+            # Nothing is going to be logged - stop right now
+            return
 
+        if pid is None:
+            pid = os.getpid()
+
+        fields = process_details(pid,
+                net and config_net,
+                io and config_io,
+                cpu and config_cpu, 
+                mem and config_mem, 
+                threads and config_threads)
+        self.metlog('procinfo', fields=fields)
+
+    return metlog_procinfo

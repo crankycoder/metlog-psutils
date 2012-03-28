@@ -15,6 +15,8 @@
 # ***** END LICENSE BLOCK *****
 import os
 from setuptools import setup, find_packages
+from ez_setup import use_setuptools
+use_setuptools()
 
 version = '0.1'
 
@@ -47,6 +49,7 @@ setup(name='metlog-psutils',
           'mock',
           ],
       entry_points="""
-      # -*- Entry points: -*-
+         [metlog.plugin]
+         psutil=metlog_psutils.psutil_plugin:config_plugin
       """,
       )

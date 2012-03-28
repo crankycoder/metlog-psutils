@@ -18,10 +18,10 @@ We are initially interested in :
 
 
 from unittest2 import TestCase
-from metlog_plugins.psutil_plugin import process_details
-from metlog_plugins.psutil_plugin import metlog_procinfo
-from metlog_plugins.psutil_plugin import check_osx_perm
-from metlog_plugins.psutil_plugin import supports_iocounters
+from metlog_psutils.psutil_plugin import process_details
+from metlog_psutils.psutil_plugin import config_plugin
+from metlog_psutils.psutil_plugin import check_osx_perm
+from metlog_psutils.psutil_plugin import supports_iocounters
 import time
 import socket
 import threading
@@ -104,7 +104,7 @@ class TestProcessLogs(TestCase):
 
     def test_invalid_metlog_arg(self):
         with self.assertRaises(SyntaxError):
-            metlog_procinfo(None, 0, thread_io=True)
+            plugin = config_plugin(thread_io=True)
 
 class TestMetlog(object):
     logger = 'tests'
@@ -115,7 +115,9 @@ class TestMetlog(object):
         # overwrite the class-wide threadlocal w/ an instance one
         # so values won't persist btn tests
         self.client.timer._local = threading.local()
-        self.client.add_method('procinfo', metlog_procinfo)
+
+        plugin = config_plugin(net=True)
+        self.client.add_method('procinfo', plugin)
 
     def test_add_procinfo(self):
         HOST = 'localhost'                 # Symbolic name meaning the local host
@@ -155,4 +157,24 @@ class TestMetlog(object):
         tc.start()
 
 
+class TestConfiguration(object):
+    """
+    Configuration for plugin based loggers should *override* what the developer
+    uses.  IOTW - developers are overridden by ops.
+    """
+    logger = 'tests'
+
+    def setUp(self):
+        self.mock_sender = Mock()
+        self.client = MetlogClient(self.mock_sender, self.logger)
+        # overwrite the class-wide threadlocal w/ an instance one
+        # so values won't persist btn tests
+        self.client.timer._local = threading.local()
+
+        plugin = config_plugin(net=False)
+        self.client.add_method('procinfo', plugin)
+
+    def test_no_netlogging(self):
+        self.client.procinfo(net=True)
+        eq_(0, len(self.client.sender.method_calls))
 
