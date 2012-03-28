@@ -1,3 +1,10 @@
+# ***** BEGIN LICENSE BLOCK *****
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+# ***** END LICENSE BLOCK *****
+
 """
 Process specific logging tests
 
@@ -11,10 +18,10 @@ We are initially interested in :
 
 
 from unittest2 import TestCase
-from pslogtools import process_details
-from pslogtools import metlog_procinfo
-from pslogtools import check_osx_perm
-from pslogtools import supports_iocounters
+from metlog_plugins.psutil_plugin import process_details
+from metlog_plugins.psutil_plugin import metlog_procinfo
+from metlog_plugins.psutil_plugin import check_osx_perm
+from metlog_plugins.psutil_plugin import supports_iocounters
 import time
 import socket
 import threading
@@ -97,7 +104,7 @@ class TestProcessLogs(TestCase):
 
     def test_invalid_metlog_arg(self):
         with self.assertRaises(SyntaxError):
-            metlog_procinfo(None, 0, {'thread_io': True})
+            metlog_procinfo(None, 0, thread_io=True)
 
 class TestMetlog(object):
     logger = 'tests'

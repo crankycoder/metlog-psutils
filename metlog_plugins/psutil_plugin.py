@@ -1,3 +1,10 @@
+# ***** BEGIN LICENSE BLOCK *****
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+# ***** END LICENSE BLOCK *****
+
 import psutil
 import socket
 import json
@@ -153,7 +160,7 @@ def process_details(pid=None, net=False, io=False,
     if pid is None:
         pid = os.getpid()
     interp = sys.executable
-    cmd = ['from pslogtools import LazyPSUtil',
+    cmd = ['from metlog_plugins.psutil_plugin import LazyPSUtil',
            'LazyPSUtil(%(pid)d).write_json(net=%(net)s, io=%(io)s, cpu=%(cpu)s, mem=%(mem)s, threads=%(threads)s)']
     cmd = ';'.join(cmd)
     rdict = {'pid': pid,
