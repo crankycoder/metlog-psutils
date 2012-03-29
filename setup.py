@@ -38,7 +38,7 @@ setup(name='metlog-psutils',
       include_package_data=True,
       zip_safe=False,
       install_requires=[
-          # -*- Extra requirements: -*-
+          'metlog-py'
           ],
       extras_require={
           },
