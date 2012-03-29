@@ -29,6 +29,7 @@ from nose.tools import eq_
 
 from mock import Mock
 from metlog.client import MetlogClient
+import pkg_resources
 
 class TestProcessLogs(TestCase):
 
@@ -104,7 +105,7 @@ class TestProcessLogs(TestCase):
 
     def test_invalid_metlog_arg(self):
         with self.assertRaises(SyntaxError):
-            plugin = config_plugin(thread_io=True)
+            plugin = config_plugin({'thread_io':True})
 
 class TestMetlog(object):
     logger = 'tests'
@@ -116,12 +117,12 @@ class TestMetlog(object):
         # so values won't persist btn tests
         self.client.timer._local = threading.local()
 
-        plugin = config_plugin(net=True)
+        plugin = config_plugin({'net':True})
         self.client.add_method('procinfo', plugin)
 
     def test_add_procinfo(self):
         HOST = 'localhost'                 # Symbolic name meaning the local host
-        PORT = 50007              # Arbitrary non-privileged port
+        PORT = 50017              # Arbitrary non-privileged port
         def echo_serv():
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -150,7 +151,7 @@ class TestMetlog(object):
         self.client.procinfo(net=True)
         eq_(1, len(self.client.sender.method_calls))
         fields = self.client.sender.method_calls[0][1][0]['fields']
-        assert fields == {u'net': [{u'status': u'LISTEN', u'type': u'TCP', u'local': u'127.0.0.1:50007', u'remote': u'*:*'}]}
+        assert fields == {u'net': [{u'status': u'LISTEN', u'type': u'TCP', u'local': u'127.0.0.1:50017', u'remote': u'*:*'}]}
 
         # Start the client up just so that the server will die gracefully
         tc = threading.Thread(target=client_code)
@@ -171,10 +172,34 @@ class TestConfiguration(object):
         # so values won't persist btn tests
         self.client.timer._local = threading.local()
 
-        plugin = config_plugin(net=False)
+        plugin = config_plugin({'net':False})
         self.client.add_method('procinfo', plugin)
 
     def test_no_netlogging(self):
         self.client.procinfo(net=True)
         eq_(0, len(self.client.sender.method_calls))
 
+
+def test_plugins_config():
+    cfg_txt = """
+    [metlog]
+    sender_class = metlog.senders.DebugCaptureSender
+
+    [metlog_plugin_procinfo]
+    net=True
+    """
+    from metlog.config import client_from_text_config
+    import json
+
+    client = client_from_text_config(cfg_txt, 'metlog')
+    client.procinfo(net=True)
+    assert len(client.sender.msgs) == 1
+    actual = json.loads(client.sender.msgs[0])
+    del actual['timestamp']
+    expected = {"severity": 6, 
+     "fields": {"net": []}, 
+     "logger": "", 
+     "type": "procinfo", 
+     "payload": "",
+     "env_version": "0.8"}
+    assert actual == expected

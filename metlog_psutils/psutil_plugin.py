@@ -175,7 +175,7 @@ def process_details(pid=None, net=False, io=False,
     stdout, stderr = result[0], result[1]
     return json.loads(stdout)
 
-def config_plugin(**config):
+def config_plugin(config):
     """
     Configure the metlog plugin prior to binding it to the
     metlog client.
